@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"unicode"
 )
 
 type TokenType string
@@ -77,13 +78,20 @@ func reportError(line int, msg string) {
 	report(line, "", msg)
 }
 
-func consumeComment(source *string, current *int) {
-	for {
+// I want to index the source by logical character like any sane person
+func stringToRunes(source string) []rune {
+	sourceRunes := make([]rune, 0)
+	for _, rune := range source {
+		sourceRunes = append(sourceRunes, rune)
 	}
+
+	return sourceRunes
 }
 
 func ScanTokens(source string) ([]Token, error) {
 	tokens := []Token{}
+
+	sourceRunes := stringToRunes(source)
 
 	hasError := false
 	start := 0
@@ -93,7 +101,7 @@ func ScanTokens(source string) ([]Token, error) {
 	addToken := func(t TokenType) {
 		tokens = append(tokens, Token{
 			type_:  t,
-			lexeme: source[start : current+1],
+			lexeme: string(sourceRunes[start : current+1]),
 			line:   line,
 		})
 	}
@@ -106,18 +114,60 @@ func ScanTokens(source string) ([]Token, error) {
 	// }
 
 	// Conditionally step forward if the next char matches
-	match := func(c byte) bool {
-		if current+1 < len(source) && source[current+1] == c {
+	match := func(c rune) bool {
+		if current+1 < len(sourceRunes) && sourceRunes[current+1] == c {
 			current += 1
 			return true
 		}
 		return false
 	}
+	// Consume a string
+	stringLiteral := func() {
+		for current+1 < len(sourceRunes) && sourceRunes[current+1] != '"' {
+			if sourceRunes[current+1] == '\n' {
+				line++
+			}
+			current++
+		}
+		if current+1 == len(sourceRunes) {
+			hasError = true
+			reportError(line, "Unterminated String")
+			return
+		}
 
-	for ; current < len(source); current++ {
+		// sort of a hack to manipulate the start/current around the
+		// addToken to get the right lexeme (without "")
+		start++
+		addToken(STRING)
+		current++
+	}
+	// Consume a number literal
+	numberLiteral := func() {
+		for current+1 < len(sourceRunes) && unicode.IsDigit(rune(sourceRunes[current+1])) {
+			current++
+		}
+
+		// TODO: This doesn't quite work, we shouldn't consume
+		// the . unless we know it's followed by a digit
+		if !match('.') {
+			print("adding num")
+			addToken(NUMBER)
+			return
+		}
+
+		for current+1 < len(sourceRunes) && unicode.IsDigit(rune(sourceRunes[current+1])) {
+			current++
+		}
+
+		print("adding num")
+		addToken(NUMBER)
+	}
+
+	for ; current < len(sourceRunes); current++ {
 		start = current
 
-		switch c := source[current]; c {
+		fmt.Printf("char: %c\n", sourceRunes[current])
+		switch c := (sourceRunes[current]); c {
 		case '(':
 			addToken(LEFT_PAREN)
 		case ')':
@@ -165,16 +215,29 @@ func ScanTokens(source string) ([]Token, error) {
 		case '/':
 			if match('/') {
 				// Go until ya can't go no more
-				for current+1 < len(source) && source[current+1] != '\n' {
+				for current+1 < len(sourceRunes) && sourceRunes[current+1] != '\n' {
 					current++
 				}
 			} else {
 				addToken(SLASH)
 			}
-		default:
-			hasError = true
+		// Ignore whitespace
+		case ' ':
+		case '\t':
+		case '\r':
 
-			reportError(line, fmt.Sprintf("Unexpected character: %c", c))
+		case '\n':
+			line++
+
+		case '"':
+			stringLiteral()
+		default:
+			if unicode.IsDigit(c) {
+				numberLiteral()
+			} else {
+				hasError = true
+				reportError(line, fmt.Sprintf("Unexpected character: %c", c))
+			}
 
 		}
 
