@@ -147,26 +147,72 @@ func ScanTokens(source string) ([]Token, error) {
 			current++
 		}
 
-		// TODO: This doesn't quite work, we shouldn't consume
-		// the . unless we know it's followed by a digit
 		if !match('.') {
-			print("adding num")
 			addToken(NUMBER)
 			return
 		}
 
+		// Consume all digits after the dot
 		for current+1 < len(sourceRunes) && unicode.IsDigit(rune(sourceRunes[current+1])) {
 			current++
 		}
 
-		print("adding num")
+		// Backtrack if no numbers were after the decimal
+		if sourceRunes[current] == '.' {
+			current--
+		}
+
 		addToken(NUMBER)
+	}
+
+	// Consume reserved words and identifiers
+	consumeWord := func() {
+		// Assume we are starting at a letter rune
+		for current+1 < len(sourceRunes) && (unicode.IsLetter(sourceRunes[current+1]) || sourceRunes[current+1] == '_') {
+			current++
+		}
+
+		switch word := string(sourceRunes[start : current+1]); word {
+		case "and":
+			addToken(AND)
+		case "class":
+			addToken(CLASS)
+		case "else":
+			addToken(ELSE)
+		case "false":
+			addToken(FALSE)
+		case "fun":
+			addToken(FUN)
+		case "for":
+			addToken(FOR)
+		case "if":
+			addToken(IF)
+		case "nul":
+			addToken(NUL)
+		case "or":
+			addToken(OR)
+		case "print":
+			addToken(PRINT)
+		case "return":
+			addToken(RETURN)
+		case "super":
+			addToken(SUPER)
+		case "this":
+			addToken(THIS)
+		case "true":
+			addToken(TRUE)
+		case "var":
+			addToken(VAR)
+		case "while":
+			addToken(WHILE)
+		default:
+			addToken(IDENTIFIER)
+		}
 	}
 
 	for ; current < len(sourceRunes); current++ {
 		start = current
 
-		fmt.Printf("char: %c\n", sourceRunes[current])
 		switch c := (sourceRunes[current]); c {
 		case '(':
 			addToken(LEFT_PAREN)
@@ -234,6 +280,9 @@ func ScanTokens(source string) ([]Token, error) {
 		default:
 			if unicode.IsDigit(c) {
 				numberLiteral()
+			} else if unicode.IsLetter(c) {
+				// Handle identifiers and reserved words
+				consumeWord()
 			} else {
 				hasError = true
 				reportError(line, fmt.Sprintf("Unexpected character: %c", c))
