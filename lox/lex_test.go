@@ -41,7 +41,7 @@ func TestScanTokens(t *testing.T) {
 		{"fun", []TokenType{FUN}},
 		{"for", []TokenType{FOR}},
 		{"if", []TokenType{IF}},
-		{"nul", []TokenType{NUL}},
+		{"nil", []TokenType{NIL}},
 		{"or", []TokenType{OR}},
 		{"print", []TokenType{PRINT}},
 		{"return", []TokenType{RETURN}},
@@ -51,6 +51,7 @@ func TestScanTokens(t *testing.T) {
 		{"var", []TokenType{VAR}},
 		{"while", []TokenType{WHILE}},
 		{"var test = \"foobar\"", []TokenType{VAR, IDENTIFIER, EQUAL, STRING}},
+		{"var\nvar", []TokenType{VAR, VAR}},
 		// Add more test cases as needed
 	}
 

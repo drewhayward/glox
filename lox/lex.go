@@ -46,7 +46,7 @@ const (
 	FUN    = "FUN"
 	FOR    = "FOR"
 	IF     = "IF"
-	NUL    = "NUL"
+	NIL    = "NIL"
 	OR     = "OR"
 	PRINT  = "PRINT"
 	RETURN = "RETURN"
@@ -105,13 +105,6 @@ func ScanTokens(source string) ([]Token, error) {
 			line:   line,
 		})
 	}
-
-	// peek := func(c byte) (byte, bool) {
-	// 	if current+1 < len(source) && source[current+1] == c {
-	// 		return source[current+1], true
-	// 	}
-	// 	return '~', false
-	// }
 
 	// Conditionally step forward if the next char matches
 	match := func(c rune) bool {
@@ -187,8 +180,8 @@ func ScanTokens(source string) ([]Token, error) {
 			addToken(FOR)
 		case "if":
 			addToken(IF)
-		case "nul":
-			addToken(NUL)
+		case "nil":
+			addToken(NIL)
 		case "or":
 			addToken(OR)
 		case "print":
