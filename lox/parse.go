@@ -1,6 +1,6 @@
 package lox
 
-func ParseTokens(tokens []Token) Expr {
+func ParseExpr(tokens []Token) Node {
 	state := parserState{tokens, 0}
 
 	expr := state.parseExpr()
@@ -64,10 +64,10 @@ func (ps *parserState) parseEquality() Expr {
 	for ps.matchToken(EQUAL_EQUAL) {
 		op := ps.previous().type_
 		rhs := ps.parseComparison()
-		expr = BinaryExpr{
-			op,
-			expr,
-			rhs,
+		expr = EqualityExpr{
+                op,
+                expr,
+                rhs,
 		}
 	}
 
@@ -80,7 +80,7 @@ func (ps *parserState) parseComparison() Expr {
 	for ps.matchToken(LESS, LESS_EQUAL, GREATER_EQUAL, GREATER) {
 		op := ps.previous().type_
 		rhs := ps.parseTerm()
-		expr = BinaryExpr{
+		expr = ComparisonExpr{
 			op,
 			expr,
 			rhs,
@@ -96,7 +96,7 @@ func (ps *parserState) parseTerm() Expr {
 	for ps.matchToken(PLUS, MINUS) {
 		op := ps.previous().type_
 		rhs := ps.parseFactor()
-		expr = BinaryExpr{
+		expr = TermExpr{
 			op,
 			expr,
 			rhs,
@@ -112,7 +112,7 @@ func (ps *parserState) parseFactor() Expr {
 	for ps.matchToken(SLASH, STAR) {
 		op := ps.previous().type_
 		rhs := ps.parseUnary()
-		expr = BinaryExpr{
+		expr = FactorExpr{
 			op,
 			expr,
 			rhs,
@@ -147,7 +147,7 @@ func (ps *parserState) parsePrimary() Expr {
 	if ps.matchToken(LEFT_PAREN) {
 		expr := ps.parseExpr()
 		ps.consumeToken(RIGHT_PAREN, "Expect ')' after expression.")
-		return expr
+		return GroupingExpr{expr}
 	}
 
 	panic("Fell through")

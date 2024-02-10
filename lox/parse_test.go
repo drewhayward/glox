@@ -104,7 +104,7 @@ func TestParseTokens(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("ParseTokens(%q)", tc.input), func(t *testing.T) {
-			result := ParseTokens(tc.input)
+			result := ParseExpr(tc.input)
 			if result != tc.expression {
 				t.Errorf("ParseTokens(%q) returned the wrong ast. Got %q, wanted: %q", tc.input, result, tc.expression)
 			}
