@@ -26,37 +26,14 @@ type GroupingExpr struct {
 func (_ GroupingExpr) isNode() {}
 func (_ GroupingExpr) exprNode() {}
 
-type FactorExpr struct {
+type BinaryExpr struct {
 	Operation TokenType
 	Lhs       Node
 	Rhs       Node
 }
-func (_ FactorExpr) isNode() {}
-func (_ FactorExpr) exprNode() {}
+func (_ BinaryExpr) isNode() {}
+func (_ BinaryExpr) exprNode() {}
 
-type EqualityExpr struct {
-	Operation TokenType
-	Lhs       Node
-	Rhs       Node
-}
-func (_ EqualityExpr) isNode() {}
-func (_ EqualityExpr) exprNode() {}
-
-type TermExpr struct {
-	Operation TokenType
-	Lhs       Node
-	Rhs       Node
-}
-func (_ TermExpr) isNode() {}
-func (_ TermExpr) exprNode() {}
-
-type ComparisonExpr struct {
-	Operation TokenType
-	Lhs       Node
-	Rhs       Node
-}
-func (_ ComparisonExpr) isNode() {}
-func (_ ComparisonExpr) exprNode() {}
 
 type LiteralExpr[T any] struct {
 	value T

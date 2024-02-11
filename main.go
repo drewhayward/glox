@@ -12,10 +12,19 @@ import (
 func run(source string) {
 	// Tokenize the source string
 	tokens, err := lox.ScanTokens(source)
-
-	if err == nil {
-		fmt.Printf("%v\n", tokens)
+	if err != nil {
+		fmt.Printf("Lexing Error %v\n", tokens)
+		return
 	}
+
+	expr, err := lox.ParseExpr(tokens)
+	if err != nil {
+		fmt.Printf("Parsing Error %v\n", err)
+		return
+	}
+
+	val := lox.Evaluate(expr)
+	fmt.Println(val)
 }
 
 func runFile(path string) {

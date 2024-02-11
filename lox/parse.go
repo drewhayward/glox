@@ -1,15 +1,33 @@
 package lox
 
-func ParseExpr(tokens []Token) Node {
+import (
+	"errors"
+	"fmt"
+	"strconv"
+)
+
+func ParseExpr(tokens []Token) (Node, error) {
 	state := parserState{tokens, 0}
 
 	expr := state.parseExpr()
-	return expr
+
+	if !state.Done() {
+		return nil, errors.New("Leftover tokens after parsing")
+	}
+
+	return expr, nil
 }
 
 type parserState struct {
 	tokens  []Token
 	current int
+}
+
+func (ps *parserState) Done() bool {
+	if ps.current < len(ps.tokens) {
+		return false
+	}
+	return true
 }
 
 // Returns the current token
@@ -64,10 +82,10 @@ func (ps *parserState) parseEquality() Expr {
 	for ps.matchToken(EQUAL_EQUAL) {
 		op := ps.previous().type_
 		rhs := ps.parseComparison()
-		expr = EqualityExpr{
-                op,
-                expr,
-                rhs,
+		expr = BinaryExpr{
+			op,
+			expr,
+			rhs,
 		}
 	}
 
@@ -80,7 +98,7 @@ func (ps *parserState) parseComparison() Expr {
 	for ps.matchToken(LESS, LESS_EQUAL, GREATER_EQUAL, GREATER) {
 		op := ps.previous().type_
 		rhs := ps.parseTerm()
-		expr = ComparisonExpr{
+		expr = BinaryExpr{
 			op,
 			expr,
 			rhs,
@@ -96,7 +114,7 @@ func (ps *parserState) parseTerm() Expr {
 	for ps.matchToken(PLUS, MINUS) {
 		op := ps.previous().type_
 		rhs := ps.parseFactor()
-		expr = TermExpr{
+		expr = BinaryExpr{
 			op,
 			expr,
 			rhs,
@@ -112,7 +130,7 @@ func (ps *parserState) parseFactor() Expr {
 	for ps.matchToken(SLASH, STAR) {
 		op := ps.previous().type_
 		rhs := ps.parseUnary()
-		expr = FactorExpr{
+		expr = BinaryExpr{
 			op,
 			expr,
 			rhs,
@@ -141,7 +159,11 @@ func (ps *parserState) parsePrimary() Expr {
 	}
 
 	if ps.matchToken(NUMBER, STRING) {
-		return NewLiteral(ps.previous().lexeme)
+		result, err := strconv.ParseFloat(ps.previous().lexeme, 64)
+		if err != nil {
+			fmt.Println("Failed to parse float")
+		}
+		return NewLiteral(result)
 	}
 
 	if ps.matchToken(LEFT_PAREN) {
