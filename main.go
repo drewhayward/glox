@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -17,14 +18,18 @@ func run(source string) {
 		return
 	}
 
-	expr, err := lox.ParseExpr(tokens)
+    root, err := lox.Parse(tokens)
 	if err != nil {
-		fmt.Printf("Parsing Error %v\n", err)
+		fmt.Println(err)
 		return
 	}
 
-	val := lox.Evaluate(expr)
-	fmt.Println(val)
+    // Todo, init some kind of runtime environment
+    // state to track variables and function calls
+    pStmts := root.(lox.ProgramNode)
+    for _, stmt := range pStmts.Statements {
+        lox.Interpret(stmt)
+    } 
 }
 
 func runFile(path string) {
@@ -56,8 +61,11 @@ func runPrompt() {
 }
 
 func main() {
+    flag.Bool("v", false, "Verbose parsing and lexing")
+    flag.Parse()
+
 	if len(os.Args) == 1 {
-		println("Usage: glox [script]")
+		fmt.Println("Usage: glox [script]")
 		runPrompt()
 	} else if len(os.Args) == 2 {
 		runFile(os.Args[1])

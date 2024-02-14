@@ -29,6 +29,9 @@ func isEqual(lhs any, rhs any) bool {
     return lhs == rhs
 }
 
+func Interpret(node Stmt) error {
+    return nil
+}
 
 func Evaluate(node Node) Value {
     switch nt := node.(type) {
