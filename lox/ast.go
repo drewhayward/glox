@@ -19,36 +19,45 @@ type Stmt interface {
 	stmtNode()
 }
 
-type ProgramNode struct{
-    Node
-    Statements []Stmt
+type ProgramNode struct {
+	Node
+	Statements []Stmt
 }
+
 func (_ ProgramNode) isNode() {}
 
 type ExprStmt struct {
-	Expr Node
+	Expr Expr
 }
 
 func (_ ExprStmt) isNode()   {}
 func (_ ExprStmt) stmtNode() {}
 
 type PrintStmt struct {
-	Expr Node
+	Expr Expr
 }
 
 func (_ PrintStmt) isNode()   {}
 func (_ PrintStmt) stmtNode() {}
 
+type DeclarationStmt struct {
+	Name string
+	Expr *Expr
+}
+
+func (_ DeclarationStmt) isNode()   {}
+func (_ DeclarationStmt) stmtNode() {}
+
 type UnaryExpr struct {
 	Operation TokenType
-	Operand   Node
+	Operand   Expr
 }
 
 func (_ UnaryExpr) isNode()   {}
 func (_ UnaryExpr) exprNode() {}
 
 type GroupingExpr struct {
-	Operand Node
+	Operand Expr
 }
 
 func (_ GroupingExpr) isNode()   {}
@@ -56,12 +65,27 @@ func (_ GroupingExpr) exprNode() {}
 
 type BinaryExpr struct {
 	Operation TokenType
-	Lhs       Node
-	Rhs       Node
+	Lhs       Expr
+	Rhs       Expr
 }
 
 func (_ BinaryExpr) isNode()   {}
 func (_ BinaryExpr) exprNode() {}
+
+type VarExpr struct {
+	Name string
+}
+
+func (_ VarExpr) isNode()   {}
+func (_ VarExpr) exprNode() {}
+
+type AssignExpr struct {
+	Name  string
+	Value Expr
+}
+
+func (_ AssignExpr) isNode()   {}
+func (_ AssignExpr) exprNode() {}
 
 type LiteralExpr[T any] struct {
 	value T
@@ -70,6 +94,6 @@ type LiteralExpr[T any] struct {
 func (_ LiteralExpr[T]) isNode()   {}
 func (_ LiteralExpr[T]) exprNode() {}
 
-func NewLiteral[T any](val T) LiteralExpr[T] {
+func NewLiteralExpr[T any](val T) LiteralExpr[T] {
 	return LiteralExpr[T]{val}
 }

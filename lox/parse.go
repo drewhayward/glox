@@ -95,7 +95,7 @@ func (ps *parserState) previous() Token {
 func (ps *parserState) parseProgram() (Node, error) {
 	stmts := make([]Stmt, 0)
 	for !ps.Done() {
-		s, err := ps.parseStmt()
+		s, err := ps.parseDeclaration()
 		if err != nil {
 			return nil, err
 		}
@@ -104,6 +104,35 @@ func (ps *parserState) parseProgram() (Node, error) {
 	}
 
 	return ProgramNode{Statements: stmts}, nil
+}
+
+func (ps *parserState) parseDeclaration() (Stmt, error) {
+	if ps.matchToken(VAR) {
+		err := ps.consumeToken(IDENTIFIER, "Expected identifier.")
+		if err != nil {
+			return nil, err
+		}
+		d := DeclarationStmt{Name: ps.previous().lexeme}
+
+		// Optionally consume the value definition
+		if ps.matchToken(EQUAL) {
+			expr, err := ps.parseExpr()
+			if err != nil {
+				return nil, err
+			}
+
+			d.Expr = &expr
+		}
+
+		err = ps.consumeToken(SEMICOLON, "Expected semicolon.")
+		if err != nil {
+			return nil, err
+		}
+
+		return d, nil
+	}
+
+	return ps.parseStmt()
 }
 
 func (ps *parserState) parseStmt() (Stmt, error) {
@@ -126,12 +155,46 @@ func (ps *parserState) parseStmt() (Stmt, error) {
 }
 
 func (ps *parserState) parseExpr() (Expr, error) {
-	expr, err := ps.parseEquality()
+	expr, err := ps.parseAssignment()
 	if err != nil {
 		return nil, err
 	}
 
 	return expr, err
+}
+
+func (ps *parserState) parseAssignment() (Expr, error) {
+	// This parses the lefthand side of the assignment
+	expr, err := ps.parseEquality()
+	if err != nil {
+		return nil, err
+	}
+
+	if ps.matchToken(EQUAL) {
+		equal := ps.previous()
+		// Since this is right-associative, we use recursion to handle
+		// further assignment expressions
+		value, err := ps.parseAssignment()
+		if err != nil {
+			return nil, err
+		}
+
+		// If the LHS is a variable, we can assign to it
+		v, ok := expr.(VarExpr)
+		if ok {
+			return AssignExpr{
+				Name:  v.Name,
+				Value: value,
+			}, nil
+
+		}
+		return nil, ParseError{
+			message: "Invalid assignment target",
+			token:   equal,
+		}
+	}
+
+	return expr, nil
 }
 
 func (ps *parserState) parseEquality() (Expr, error) {
@@ -245,16 +308,20 @@ func (ps *parserState) parseUnary() (Expr, error) {
 
 func (ps *parserState) parsePrimary() (Expr, error) {
 	if ps.matchToken(FALSE) {
-		return NewLiteral(false), nil
+		return NewLiteralExpr(false), nil
 	}
 	if ps.matchToken(TRUE) {
-		return NewLiteral(true), nil
+		return NewLiteralExpr(true), nil
 	}
 	if ps.matchToken(NIL) {
-		return NewLiteral[*struct{}](nil), nil
+		return NewLiteralExpr[*struct{}](nil), nil
 	}
 
-	if ps.matchToken(NUMBER, STRING) {
+	if ps.matchToken(IDENTIFIER) {
+		return VarExpr{Name: ps.previous().lexeme}, nil
+	}
+
+	if ps.matchToken(NUMBER) {
 		result, err := strconv.ParseFloat(ps.previous().lexeme, 64)
 		if err != nil {
 			return nil, ParseError{
@@ -262,7 +329,11 @@ func (ps *parserState) parsePrimary() (Expr, error) {
 			}
 		}
 
-		return NewLiteral(result), nil
+		return NewLiteralExpr(result), nil
+	}
+
+	if ps.matchToken(STRING) {
+		return NewLiteralExpr(ps.previous().lexeme), nil
 	}
 
 	if ps.matchToken(LEFT_PAREN) {
