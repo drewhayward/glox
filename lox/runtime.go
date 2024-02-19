@@ -107,6 +107,22 @@ func (state *RuntimeState) Interpret(stmt Stmt) error {
 			state.Interpret(stmt)
 		}
 		state.CurrEnv = state.CurrEnv.parent
+    case IfStmt:
+        cond, err := state.Evaluate(stype.Condition)
+        if err != nil {
+            return err
+        }
+
+        if isTruthy(cond) {
+            err = state.Interpret(stype.ThenBranch)
+        } else {
+            err = state.Interpret(stype.ElseBranch)
+        }
+
+        if err != nil {
+            return err
+        }
+
 	}
 	return nil
 }

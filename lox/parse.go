@@ -141,6 +141,8 @@ func (ps *parserState) parseStmt() (Stmt, error) {
 		return ps.parsePrint()
 	case LEFT_BRACE:
 		return ps.parseBlock()
+    case IF:
+        return ps.parseIf()
 	default:
 		expr, err := ps.parseExpr()
 		if err != nil {
@@ -149,6 +151,43 @@ func (ps *parserState) parseStmt() (Stmt, error) {
 
 		return ExprStmt{expr}, nil
 	}
+}
+
+func (ps *parserState) parseIf() (Stmt, error) {
+	err := ps.consumeToken(IF, "Expected 'if' keyword to start if statement")
+	if err != nil {
+		return nil, err
+	}
+
+	err = ps.consumeToken(LEFT_PAREN, "Expected '(' after if ")
+	if err != nil {
+		return nil, err
+	}
+
+	condition, err := ps.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+
+	err = ps.consumeToken(RIGHT_PAREN, "Expected ')' after if ")
+	if err != nil {
+		return nil, err
+	}
+
+    thenStmt, err := ps.parseStmt()
+	if err != nil {
+		return nil, err
+	}
+
+    var elseStmt Stmt
+    if ps.matchToken(ELSE) {
+        elseStmt, err = ps.parseStmt()
+        if err != nil {
+            return nil, err
+        }
+    }
+
+	return IfStmt{Condition: condition, ThenBranch: thenStmt, ElseBranch: elseStmt}, nil
 }
 
 func (ps *parserState) parsePrint() (Stmt, error) {

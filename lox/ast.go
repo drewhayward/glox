@@ -55,6 +55,15 @@ type DeclarationStmt struct {
 func (_ DeclarationStmt) isNode()   {}
 func (_ DeclarationStmt) stmtNode() {}
 
+type IfStmt struct {
+	Condition Expr
+	ThenBranch Stmt
+    ElseBranch Stmt
+}
+
+func (_ IfStmt) isNode()   {}
+func (_ IfStmt) stmtNode() {}
+
 type UnaryExpr struct {
 	Operation TokenType
 	Operand   Expr
