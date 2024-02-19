@@ -228,7 +228,7 @@ func (rs *RuntimeState) Evaluate(node Expr) (Value, error) {
 		if nt.Operation == OR && isTruthy(left) {
 			return isTruthy(left), nil
 		} else if nt.Operation == AND && !isTruthy(left) {
-			return !isTruthy(left), nil
+			return isTruthy(left), nil
 		}
 
 		right, err := rs.Evaluate(nt.Rhs)

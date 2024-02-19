@@ -2,58 +2,71 @@ package lox
 
 import (
 	"bytes"
+	"strings"
 	"testing"
-    is "github.com/matryer/is"
 
+	"github.com/matryer/is"
 )
 
-func TestOutut(t * testing.T) {
-    cases := []struct{
-        name string
-        input string
-        output string
-    }{
-        {"empty", "", ""},
-        {"exp statment", "1;", ""},
-        {"print", "print 1;", "1\n"},
-        {"block statement", 
-        `var a = 1;
+func TestOutut(t *testing.T) {
+	cases := []struct {
+		name   string
+		input  string
+		output string
+	}{
+		{"empty", "", ""},
+		{"exp statment", "1;", ""},
+		{"print", "print 1;", "1\n"},
+		{"block statement",
+			`var a = 1;
         {
             var a = 2;
             print a;
         }
         print a;
         `,
-        "2\n1\n"},
-        {"if statement", 
-        `if (true)
+			"2\n1\n"},
+		{"if statement: true",
+			`if (true)
             print 1;
         else
             print 2;
         `,
-        "1\n"},
-        {"if statement", 
-        `if (false)
+			"1\n"},
+		{"if statement: false",
+			`if (false)
             print 1;
         else
             print 2;
         `,
-        "2\n"},
-    }
-    is := is.New(t)
+			"2\n"},
+		{"logical or shortcircuit",
+			"print 1 or (1 / 0);",
+			"true\n"},
+		{"logical and shortcircuit",
+			"print false and (1 / 0);",
+			"false\n"},
+		{"assignment as expression",
+			"var a; print a = 1;",
+			"1\n"},
+	}
+	is := is.New(t)
 
-    for _, tc := range cases {
-        t.Run(tc.name, func (t *testing.T) {
-            var buf bytes.Buffer
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
 
-            s := RuntimeState{
-                CurrEnv: NewScopeEnv(nil),
-                OutWriter: &buf,
-            }            
+			s := RuntimeState{
+				CurrEnv:   NewScopeEnv(nil),
+				OutWriter: &buf,
+			}
 
-            s.Run(tc.input)
+			s.Run(tc.input)
 
-            is.Equal(string(buf.Bytes()), tc.output)
-        })
-    }
+			is.Equal(
+				strings.ReplaceAll(string(buf.Bytes()), "\n", "\\n"),
+				strings.ReplaceAll(tc.output, "\n", "\\n"),
+			)
+		})
+	}
 }
