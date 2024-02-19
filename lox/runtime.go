@@ -40,12 +40,13 @@ func (e RuntimeError) Error() string {
 }
 
 type RuntimeState struct {
-	Env map[string]any
+	// Points to the currently active scope for execution
+	CurrEnv *ScopeEnv
 }
 
 func NewRuntimeState() RuntimeState {
 	return RuntimeState{
-		Env: make(map[string]any),
+		NewScopeEnv(nil),
 	}
 }
 
@@ -89,11 +90,6 @@ func (state *RuntimeState) Interpret(stmt Stmt) error {
 		}
 
 	case DeclarationStmt:
-		_, exists := state.Env[stype.Name]
-		if exists {
-			return RuntimeError{message: fmt.Sprintf("Var %s has already been declared", stype.Name)}
-		}
-
 		var init any
 		if stype.Expr != nil {
 			v, err := state.Evaluate(*stype.Expr)
@@ -103,7 +99,14 @@ func (state *RuntimeState) Interpret(stmt Stmt) error {
 			init = v
 		}
 
-		state.Env[stype.Name] = init
+		state.CurrEnv.Declare(stype.Name, init)
+	case BlockStmt:
+		// Create a new variable scope
+		state.CurrEnv = NewScopeEnv(state.CurrEnv)
+		for _, stmt := range stype.Statements {
+			state.Interpret(stmt)
+		}
+		state.CurrEnv = state.CurrEnv.parent
 	}
 	return nil
 }
@@ -119,24 +122,14 @@ func (rs *RuntimeState) Evaluate(node Expr) (Value, error) {
 	case LiteralExpr[*struct{}]:
 		return Null(nil), nil
 	case VarExpr:
-		value, ok := rs.Env[nt.Name]
-		if !ok {
-			return nil, RuntimeError{message: fmt.Sprintf("Var %s has never been declared", nt.Name)}
-		}
-
-		return value, nil
+		return rs.CurrEnv.Lookup(nt.Name)
 	case AssignExpr:
-		_, ok := rs.Env[nt.Name]
-		if !ok {
-			return nil, RuntimeError{message: fmt.Sprintf("Var %s has never been declared", nt.Name)}
-		}
-		value, err := rs.Evaluate(nt.Value)
+		v, err := rs.Evaluate(nt.Value)
 		if err != nil {
 			return nil, err
 		}
 
-		rs.Env[nt.Name] = value
-		return value, nil
+		return rs.CurrEnv.Assign(nt.Name, v)
 	case UnaryExpr:
 		value, err := rs.Evaluate(nt)
 		if err != nil {

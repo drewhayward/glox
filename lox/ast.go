@@ -40,6 +40,13 @@ type PrintStmt struct {
 func (_ PrintStmt) isNode()   {}
 func (_ PrintStmt) stmtNode() {}
 
+type BlockStmt struct {
+	Statements []Stmt
+}
+
+func (_ BlockStmt) isNode()   {}
+func (_ BlockStmt) stmtNode() {}
+
 type DeclarationStmt struct {
 	Name string
 	Expr *Expr

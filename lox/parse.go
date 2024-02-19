@@ -136,7 +136,26 @@ func (ps *parserState) parseDeclaration() (Stmt, error) {
 }
 
 func (ps *parserState) parseStmt() (Stmt, error) {
-	isPrint := ps.matchToken(PRINT)
+	switch ps.peekToken().type_ {
+	case PRINT:
+		return ps.parsePrint()
+	case LEFT_BRACE:
+		return ps.parseBlock()
+	default:
+		expr, err := ps.parseExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		return ExprStmt{expr}, nil
+	}
+}
+
+func (ps *parserState) parsePrint() (Stmt, error) {
+	err := ps.consumeToken(PRINT, "Expected 'print'")
+	if err != nil {
+		return nil, err
+	}
 	expr, err := ps.parseExpr()
 	if err != nil {
 		return nil, err
@@ -147,11 +166,25 @@ func (ps *parserState) parseStmt() (Stmt, error) {
 		return nil, err
 	}
 
-	if isPrint {
-		return PrintStmt{expr}, nil
+	return PrintStmt{expr}, nil
+}
+
+func (ps *parserState) parseBlock() (Stmt, error) {
+	err := ps.consumeToken(LEFT_BRACE, "Expected block to start with '{'")
+	if err != nil {
+		return nil, err
 	}
 
-	return ExprStmt{expr}, nil
+	stmts := make([]Stmt, 0)
+	for !ps.matchToken(RIGHT_BRACE) {
+		s, err := ps.parseDeclaration()
+		if err != nil {
+			return nil, err
+		}
+		stmts = append(stmts, s)
+	}
+
+	return BlockStmt{Statements: stmts}, nil
 }
 
 func (ps *parserState) parseExpr() (Expr, error) {
