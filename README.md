@@ -1,4 +1,4 @@
-# `glox` Parser
+# `glox` Interpreter
 A golang implementation of the Lox language from *Crafting Interpreters* by Robert Nystrom.
 
 **Why Go?**
