@@ -1,6 +1,10 @@
 package lox
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+	"os"
+)
 
 type Value interface{}
 
@@ -41,12 +45,14 @@ func (e RuntimeError) Error() string {
 
 type RuntimeState struct {
 	// Points to the currently active scope for execution
-	CurrEnv *ScopeEnv
+	CurrEnv   *ScopeEnv
+	OutWriter io.Writer
 }
 
 func NewRuntimeState() RuntimeState {
 	return RuntimeState{
-		NewScopeEnv(nil),
+		CurrEnv:   NewScopeEnv(nil),
+		OutWriter: os.Stdout,
 	}
 }
 
@@ -54,13 +60,13 @@ func (rs *RuntimeState) Run(source string) {
 	// Tokenize the source string
 	tokens, err := ScanTokens(source)
 	if err != nil {
-		fmt.Printf("Lexing Error %v\n", tokens)
+		fmt.Fprintf(rs.OutWriter, "Lexing Error %v\n", tokens)
 		return
 	}
 
 	root, err := Parse(tokens)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(rs.OutWriter, err)
 		return
 	}
 
@@ -68,7 +74,7 @@ func (rs *RuntimeState) Run(source string) {
 	for _, stmt := range pStmts.Statements {
 		err := rs.Interpret(stmt)
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Fprintln(rs.OutWriter, err.Error())
 		}
 	}
 }
@@ -81,7 +87,7 @@ func (rs *RuntimeState) Interpret(stmt Stmt) error {
 			return err
 		}
 
-		fmt.Println(value)
+		fmt.Fprintln(rs.OutWriter, value)
 	case ExprStmt:
 		// We don't actually do anything with an ExprStmt value
 		_, err := rs.Evaluate(stype.Expr)
@@ -214,26 +220,26 @@ func (rs *RuntimeState) Evaluate(node Expr) (Value, error) {
 		}
 	case LogicalExpr:
 		left, err := rs.Evaluate(nt.Lhs)
-        if err != nil {
-            return nil, err
-        }
+		if err != nil {
+			return nil, err
+		}
 
-        // Short circuit
-        if nt.Operation == OR  && isTruthy(left) {
-            return isTruthy(left), nil
-        } else if nt.Operation == AND && !isTruthy(left) {
-            return !isTruthy(left), nil
-        }
+		// Short circuit
+		if nt.Operation == OR && isTruthy(left) {
+			return isTruthy(left), nil
+		} else if nt.Operation == AND && !isTruthy(left) {
+			return !isTruthy(left), nil
+		}
 
-        right, err := rs.Evaluate(nt.Rhs)
-        if err != nil {
-            return nil, err
-        }
+		right, err := rs.Evaluate(nt.Rhs)
+		if err != nil {
+			return nil, err
+		}
 
-        if nt.Operation == OR {
-            return isTruthy(left) || isTruthy(right), nil
-        }
-        return isTruthy(left) && isTruthy(right), nil
+		if nt.Operation == OR {
+			return isTruthy(left) || isTruthy(right), nil
+		}
+		return isTruthy(left) && isTruthy(right), nil
 	}
 
 	return nil, RuntimeError{

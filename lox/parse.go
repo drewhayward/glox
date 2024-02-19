@@ -141,10 +141,16 @@ func (ps *parserState) parseStmt() (Stmt, error) {
 		return ps.parsePrint()
 	case LEFT_BRACE:
 		return ps.parseBlock()
-    case IF:
-        return ps.parseIf()
+	case IF:
+		return ps.parseIf()
 	default:
 		expr, err := ps.parseExpr()
+		fmt.Printf("Returned the expression %#v\n", expr)
+		if err != nil {
+			return nil, err
+		}
+
+		err = ps.consumeToken(SEMICOLON, "Expected semicolon.")
 		if err != nil {
 			return nil, err
 		}
@@ -174,18 +180,18 @@ func (ps *parserState) parseIf() (Stmt, error) {
 		return nil, err
 	}
 
-    thenStmt, err := ps.parseStmt()
+	thenStmt, err := ps.parseStmt()
 	if err != nil {
 		return nil, err
 	}
 
-    var elseStmt Stmt
-    if ps.matchToken(ELSE) {
-        elseStmt, err = ps.parseStmt()
-        if err != nil {
-            return nil, err
-        }
-    }
+	var elseStmt Stmt
+	if ps.matchToken(ELSE) {
+		elseStmt, err = ps.parseStmt()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return IfStmt{Condition: condition, ThenBranch: thenStmt, ElseBranch: elseStmt}, nil
 }
@@ -237,7 +243,7 @@ func (ps *parserState) parseExpr() (Expr, error) {
 
 func (ps *parserState) parseAssignment() (Expr, error) {
 	// This parses the lefthand side of the assignment
-	expr, err := ps.parseEquality()
+	expr, err := ps.parseOr()
 	if err != nil {
 		return nil, err
 	}
@@ -270,49 +276,49 @@ func (ps *parserState) parseAssignment() (Expr, error) {
 }
 
 func (ps *parserState) parseOr() (Expr, error) {
-    expr, err := ps.parseAnd()
-    if err != nil {
-        return nil, err
-    }
+	expr, err := ps.parseAnd()
+	if err != nil {
+		return nil, err
+	}
 
-    for ps.matchToken(OR) {
-        fmt.Println("parsing or")
-        tok := ps.previous()
-        rhs, err := ps.parseAnd()
-        if err != nil {
-            return nil, err
-        }
+	for ps.matchToken(OR) {
+		fmt.Println("parsing or")
+		tok := ps.previous()
+		rhs, err := ps.parseAnd()
+		if err != nil {
+			return nil, err
+		}
 
-        expr = LogicalExpr{
-            Operation: tok.type_,
-            Lhs: expr,
-            Rhs: rhs,
-        }
-    }
+		expr = LogicalExpr{
+			Operation: tok.type_,
+			Lhs:       expr,
+			Rhs:       rhs,
+		}
+	}
 
-    return expr, nil
+	return expr, nil
 }
 func (ps *parserState) parseAnd() (Expr, error) {
-    expr, err := ps.parseEquality()
-    if err != nil {
-        return nil, err
-    }
+	expr, err := ps.parseEquality()
+	if err != nil {
+		return nil, err
+	}
 
-    for ps.matchToken(AND) {
-        tok := ps.previous()
-        rhs, err := ps.parseEquality()
-        if err != nil {
-            return nil, err
-        }
+	for ps.matchToken(AND) {
+		tok := ps.previous()
+		rhs, err := ps.parseEquality()
+		if err != nil {
+			return nil, err
+		}
 
-        expr = LogicalExpr{
-            Operation: tok.type_,
-            Lhs: expr,
-            Rhs: rhs,
-        }
-    }
+		expr = LogicalExpr{
+			Operation: tok.type_,
+			Lhs:       expr,
+			Rhs:       rhs,
+		}
+	}
 
-    return expr, nil
+	return expr, nil
 }
 
 func (ps *parserState) parseEquality() (Expr, error) {
