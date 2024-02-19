@@ -73,10 +73,10 @@ func (rs *RuntimeState) Run(source string) {
 	}
 }
 
-func (state *RuntimeState) Interpret(stmt Stmt) error {
+func (rs *RuntimeState) Interpret(stmt Stmt) error {
 	switch stype := stmt.(type) {
 	case PrintStmt:
-		value, err := state.Evaluate(stype.Expr)
+		value, err := rs.Evaluate(stype.Expr)
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func (state *RuntimeState) Interpret(stmt Stmt) error {
 		fmt.Println(value)
 	case ExprStmt:
 		// We don't actually do anything with an ExprStmt value
-		_, err := state.Evaluate(stype.Expr)
+		_, err := rs.Evaluate(stype.Expr)
 		if err != nil {
 			return err
 		}
@@ -92,36 +92,36 @@ func (state *RuntimeState) Interpret(stmt Stmt) error {
 	case DeclarationStmt:
 		var init any
 		if stype.Expr != nil {
-			v, err := state.Evaluate(*stype.Expr)
+			v, err := rs.Evaluate(*stype.Expr)
 			if err != nil {
 				return err
 			}
 			init = v
 		}
 
-		state.CurrEnv.Declare(stype.Name, init)
+		rs.CurrEnv.Declare(stype.Name, init)
 	case BlockStmt:
 		// Create a new variable scope
-		state.CurrEnv = NewScopeEnv(state.CurrEnv)
+		rs.CurrEnv = NewScopeEnv(rs.CurrEnv)
 		for _, stmt := range stype.Statements {
-			state.Interpret(stmt)
+			rs.Interpret(stmt)
 		}
-		state.CurrEnv = state.CurrEnv.parent
-    case IfStmt:
-        cond, err := state.Evaluate(stype.Condition)
-        if err != nil {
-            return err
-        }
+		rs.CurrEnv = rs.CurrEnv.parent
+	case IfStmt:
+		cond, err := rs.Evaluate(stype.Condition)
+		if err != nil {
+			return err
+		}
 
-        if isTruthy(cond) {
-            err = state.Interpret(stype.ThenBranch)
-        } else {
-            err = state.Interpret(stype.ElseBranch)
-        }
+		if isTruthy(cond) {
+			err = rs.Interpret(stype.ThenBranch)
+		} else {
+			err = rs.Interpret(stype.ElseBranch)
+		}
 
-        if err != nil {
-            return err
-        }
+		if err != nil {
+			return err
+		}
 
 	}
 	return nil
@@ -212,7 +212,28 @@ func (rs *RuntimeState) Evaluate(node Expr) (Value, error) {
 		return nil, RuntimeError{
 			message: fmt.Sprintf("Bad operand '%s' in unary expression", nt.Operation),
 		}
+	case LogicalExpr:
+		left, err := rs.Evaluate(nt.Lhs)
+        if err != nil {
+            return nil, err
+        }
 
+        // Short circuit
+        if nt.Operation == OR  && isTruthy(left) {
+            return isTruthy(left), nil
+        } else if nt.Operation == AND && !isTruthy(left) {
+            return !isTruthy(left), nil
+        }
+
+        right, err := rs.Evaluate(nt.Rhs)
+        if err != nil {
+            return nil, err
+        }
+
+        if nt.Operation == OR {
+            return isTruthy(left) || isTruthy(right), nil
+        }
+        return isTruthy(left) && isTruthy(right), nil
 	}
 
 	return nil, RuntimeError{

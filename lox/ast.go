@@ -56,9 +56,9 @@ func (_ DeclarationStmt) isNode()   {}
 func (_ DeclarationStmt) stmtNode() {}
 
 type IfStmt struct {
-	Condition Expr
+	Condition  Expr
 	ThenBranch Stmt
-    ElseBranch Stmt
+	ElseBranch Stmt
 }
 
 func (_ IfStmt) isNode()   {}
@@ -94,6 +94,15 @@ type VarExpr struct {
 
 func (_ VarExpr) isNode()   {}
 func (_ VarExpr) exprNode() {}
+
+type LogicalExpr struct {
+	Operation TokenType
+	Lhs       Expr
+	Rhs       Expr
+}
+
+func (_ LogicalExpr) isNode()   {}
+func (_ LogicalExpr) exprNode() {}
 
 type AssignExpr struct {
 	Name  string

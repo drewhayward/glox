@@ -269,6 +269,52 @@ func (ps *parserState) parseAssignment() (Expr, error) {
 	return expr, nil
 }
 
+func (ps *parserState) parseOr() (Expr, error) {
+    expr, err := ps.parseAnd()
+    if err != nil {
+        return nil, err
+    }
+
+    for ps.matchToken(OR) {
+        fmt.Println("parsing or")
+        tok := ps.previous()
+        rhs, err := ps.parseAnd()
+        if err != nil {
+            return nil, err
+        }
+
+        expr = LogicalExpr{
+            Operation: tok.type_,
+            Lhs: expr,
+            Rhs: rhs,
+        }
+    }
+
+    return expr, nil
+}
+func (ps *parserState) parseAnd() (Expr, error) {
+    expr, err := ps.parseEquality()
+    if err != nil {
+        return nil, err
+    }
+
+    for ps.matchToken(AND) {
+        tok := ps.previous()
+        rhs, err := ps.parseEquality()
+        if err != nil {
+            return nil, err
+        }
+
+        expr = LogicalExpr{
+            Operation: tok.type_,
+            Lhs: expr,
+            Rhs: rhs,
+        }
+    }
+
+    return expr, nil
+}
+
 func (ps *parserState) parseEquality() (Expr, error) {
 	expr, err := ps.parseComparison()
 	if err != nil {
