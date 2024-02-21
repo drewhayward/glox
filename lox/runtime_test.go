@@ -49,6 +49,13 @@ func TestOutut(t *testing.T) {
             }
         `,
 			"1\n2\n3\n4\n5\n"},
+		{"for loop",
+			`
+            for (var a = 1; a <= 5; a = a + 1) {
+                print a;
+            }
+        `,
+			"1\n2\n3\n4\n5\n"},
 		{"logical or shortcircuit",
 			"print 1 or (1 / 0);",
 			"true\n"},

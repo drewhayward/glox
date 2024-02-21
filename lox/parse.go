@@ -141,23 +141,29 @@ func (ps *parserState) parseStmt() (Stmt, error) {
 		return ps.parsePrint()
 	case WHILE:
 		return ps.parseWhile()
+	case FOR:
+		return ps.parseFor()
 	case LEFT_BRACE:
 		return ps.parseBlock()
 	case IF:
 		return ps.parseIf()
 	default:
-		expr, err := ps.parseExpr()
-		if err != nil {
-			return nil, err
-		}
-
-		err = ps.consumeToken(SEMICOLON, "Expected semicolon.")
-		if err != nil {
-			return nil, err
-		}
-
-		return ExprStmt{expr}, nil
+		return ps.parseExprStmt()
 	}
+}
+
+func (ps *parserState) parseExprStmt() (Stmt, error) {
+	expr, err := ps.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+
+	err = ps.consumeToken(SEMICOLON, "Expected semicolon.")
+	if err != nil {
+		return nil, err
+	}
+
+	return ExprStmt{expr}, nil
 }
 
 func (ps *parserState) parseIf() (Stmt, error) {
@@ -227,6 +233,91 @@ func (ps *parserState) parseWhile() (Stmt, error) {
 		Condition: expr,
 		Body:      stmt,
 	}, nil
+}
+
+// Parse a for loop as a desugared while because we can
+func (ps *parserState) parseFor() (Stmt, error) {
+	err := ps.consumeToken(FOR, "Expected 'for' to start loop")
+	if err != nil {
+		return nil, err
+	}
+
+	err = ps.consumeToken(LEFT_PAREN, "Expected '(' to start")
+	if err != nil {
+		return nil, err
+	}
+
+	// Pull out the init
+	var init Stmt
+	if ps.peekToken().type_ == VAR {
+		init, err = ps.parseDeclaration()
+		if err != nil {
+			return nil, err
+		}
+	} else if !ps.matchToken(SEMICOLON) {
+		init, err = ps.parseExprStmt()
+		if err != nil {
+			return nil, err
+		}
+
+		err = ps.consumeToken(SEMICOLON, "Expected ';' after loop init")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var cond Expr
+	if !ps.matchToken(SEMICOLON) {
+		cond, err = ps.parseExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		err = ps.consumeToken(SEMICOLON, "Expected ';' after loop condition")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var increment Expr
+	if !ps.matchToken(RIGHT_PAREN) {
+		increment, err = ps.parseExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		err = ps.consumeToken(RIGHT_PAREN, "Expected ')' to start")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	body, err := ps.parseStmt()
+	if err != nil {
+		return nil, err
+	}
+
+	// Add the increment to the end of the while
+	if increment != nil {
+		body = BlockStmt{
+			Statements: []Stmt{body, ExprStmt{Expr: increment}},
+		}
+	}
+
+	// Create a new while with the condition
+	if cond == nil {
+		cond = LiteralExpr[bool]{value: true}
+	}
+	body = WhileStmt{
+		Condition: cond,
+		Body:      body,
+	}
+
+	if init != nil {
+		body = BlockStmt{Statements: []Stmt{init, body}}
+	}
+
+	return body, nil
 }
 
 func (ps *parserState) parsePrint() (Stmt, error) {
