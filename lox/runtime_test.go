@@ -40,6 +40,15 @@ func TestOutut(t *testing.T) {
             print 2;
         `,
 			"2\n"},
+		{"while loop",
+			`
+            var a = 1;
+            while (a <= 5) {
+                print a;
+                a = a + 1;
+            }
+        `,
+			"1\n2\n3\n4\n5\n"},
 		{"logical or shortcircuit",
 			"print 1 or (1 / 0);",
 			"true\n"},

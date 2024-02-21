@@ -128,7 +128,22 @@ func (rs *RuntimeState) Interpret(stmt Stmt) error {
 		if err != nil {
 			return err
 		}
+	case WhileStmt:
+		for {
+			cond, err := rs.Evaluate(stype.Condition)
+			if err != nil {
+				return err
+			}
 
+			if !isTruthy(cond) {
+				break
+			}
+
+			err = rs.Interpret(stype.Body)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

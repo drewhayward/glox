@@ -139,13 +139,14 @@ func (ps *parserState) parseStmt() (Stmt, error) {
 	switch ps.peekToken().type_ {
 	case PRINT:
 		return ps.parsePrint()
+	case WHILE:
+		return ps.parseWhile()
 	case LEFT_BRACE:
 		return ps.parseBlock()
 	case IF:
 		return ps.parseIf()
 	default:
 		expr, err := ps.parseExpr()
-		fmt.Printf("Returned the expression %#v\n", expr)
 		if err != nil {
 			return nil, err
 		}
@@ -194,6 +195,38 @@ func (ps *parserState) parseIf() (Stmt, error) {
 	}
 
 	return IfStmt{Condition: condition, ThenBranch: thenStmt, ElseBranch: elseStmt}, nil
+}
+
+func (ps *parserState) parseWhile() (Stmt, error) {
+	err := ps.consumeToken(WHILE, "Expected 'while' to start")
+	if err != nil {
+		return nil, err
+	}
+
+	err = ps.consumeToken(LEFT_PAREN, "Expected '(' to start")
+	if err != nil {
+		return nil, err
+	}
+
+	expr, err := ps.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+
+	err = ps.consumeToken(RIGHT_PAREN, "Expected ')' to start")
+	if err != nil {
+		return nil, err
+	}
+
+	stmt, err := ps.parseStmt()
+	if err != nil {
+		return nil, err
+	}
+
+	return WhileStmt{
+		Condition: expr,
+		Body:      stmt,
+	}, nil
 }
 
 func (ps *parserState) parsePrint() (Stmt, error) {

@@ -64,6 +64,14 @@ type IfStmt struct {
 func (_ IfStmt) isNode()   {}
 func (_ IfStmt) stmtNode() {}
 
+type WhileStmt struct {
+	Condition Expr
+	Body      Stmt
+}
+
+func (_ WhileStmt) isNode()   {}
+func (_ WhileStmt) stmtNode() {}
+
 type UnaryExpr struct {
 	Operation TokenType
 	Operand   Expr
