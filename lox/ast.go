@@ -72,6 +72,14 @@ type WhileStmt struct {
 func (_ WhileStmt) isNode()   {}
 func (_ WhileStmt) stmtNode() {}
 
+type CallExpr struct {
+	Callee Expr
+	Args   []Expr
+}
+
+func (_ CallExpr) isNode()   {}
+func (_ CallExpr) exprNode() {}
+
 type UnaryExpr struct {
 	Operation TokenType
 	Operand   Expr

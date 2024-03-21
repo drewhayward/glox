@@ -10,6 +10,10 @@ type Value interface{}
 
 type Null *struct{}
 
+type LoxCallable interface {
+	Call(runtimeState *RuntimeState, arguments []Value)
+}
+
 // Determines whether a value is truthy.
 // Lox implements Ruby's truthiness rules
 // lox-nil and false are falsey
@@ -255,6 +259,34 @@ func (rs *RuntimeState) Evaluate(node Expr) (Value, error) {
 			return isTruthy(left) || isTruthy(right), nil
 		}
 		return isTruthy(left) && isTruthy(right), nil
+	case CallExpr:
+		callee, err := rs.Evaluate(nt.Callee)
+		if err != nil {
+			return nil, err
+		}
+
+		argValues := make([]Value, 0)
+		for _, arg := range nt.Args {
+			argValue, err := rs.Evaluate(arg)
+			if err != nil {
+				return nil, err
+			}
+
+			argValues = append(argValues, argValue)
+		}
+
+		// Cast callee to function type
+		switch callable := callee.(type) {
+		case LoxCallable:
+			callable.Call(rs, argValues)
+		default:
+			err := RuntimeError{
+				message: fmt.Sprintf("Attempted to call non-callable object: %+v", node),
+			}
+			return nil, err
+
+		}
+
 	}
 
 	return nil, RuntimeError{

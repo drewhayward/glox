@@ -11,6 +11,8 @@ type ParseError struct {
 	token   Token
 }
 
+const MAX_FUNCTION_ARGS = 255
+
 func (p ParseError) Error() string {
 	return fmt.Sprintf("Parse Error: %s", p.message)
 }
@@ -422,6 +424,7 @@ func (ps *parserState) parseOr() (Expr, error) {
 
 	return expr, nil
 }
+
 func (ps *parserState) parseAnd() (Expr, error) {
 	expr, err := ps.parseEquality()
 	if err != nil {
@@ -546,12 +549,49 @@ func (ps *parserState) parseUnary() (Expr, error) {
 		return UnaryExpr{ps.previous().type_, expr}, nil
 	}
 
-	expr, err := ps.parsePrimary()
+	expr, err := ps.parseCall()
+	if err != nil {
+		return nil, err
+	}
+	return expr, nil
+}
+
+func (ps *parserState) parseCall() (Expr, error) {
+	callee, err := ps.parsePrimary()
 	if err != nil {
 		return nil, err
 	}
 
-	return expr, nil
+	for ps.matchToken(LEFT_PAREN) {
+		arguments := make([]Expr, 0)
+		if !ps.checkTokenType(RIGHT_PAREN) {
+			for {
+				expr, err := ps.parseExpr()
+				if err != nil {
+					return nil, err
+				}
+				arguments = append(arguments, expr)
+
+				if len(arguments) > MAX_FUNCTION_ARGS {
+					err = ParseError{message: fmt.Sprintf("Can't have more that %d function arguments", len(arguments))}
+					return nil, err
+				}
+
+				if !ps.matchToken(COMMA) {
+					break
+				}
+			}
+		}
+
+		err := ps.consumeToken(RIGHT_PAREN, "Expected ) to close function call")
+		if err != nil {
+			return nil, err
+		}
+
+		callee = CallExpr{Callee: callee, Args: arguments}
+	}
+
+	return callee, nil
 }
 
 func (ps *parserState) parsePrimary() (Expr, error) {
