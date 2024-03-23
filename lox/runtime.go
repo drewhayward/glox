@@ -32,6 +32,7 @@ func (f LoxFunction) Call(rs *RuntimeState, arguments []Value) (any, error) {
 			return nil, err
 		}
 		if ret != nil {
+			rs.CurrEnv = rs.CurrEnv.parent
 			return ret, nil
 		}
 	}
@@ -171,6 +172,7 @@ func (rs *RuntimeState) Interpret(stmt Stmt) (Value, error) {
 				return nil, err
 			}
 			if ret != nil {
+				rs.CurrEnv = rs.CurrEnv.parent
 				return ret, nil
 			}
 		}
