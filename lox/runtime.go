@@ -11,8 +11,37 @@ type Value interface{}
 type Null *struct{}
 
 type LoxCallable interface {
-	Call(runtimeState *RuntimeState, arguments []Value) any
+	Call(runtimeState *RuntimeState, arguments []Value) (any, error)
 	Arity() int
+}
+
+type LoxFunction struct {
+	Params []string
+	Stmts  []Stmt
+}
+
+func (f LoxFunction) Call(rs *RuntimeState, arguments []Value) (any, error) {
+	rs.CurrEnv = NewScopeEnv(rs.CurrEnv)
+	for i, param := range f.Params {
+		rs.CurrEnv.Declare(param, arguments[i])
+	}
+
+	for _, stmt := range f.Stmts {
+		ret, err := rs.Interpret(stmt)
+		if err != nil {
+			return nil, err
+		}
+		if ret != nil {
+			return ret, nil
+		}
+	}
+
+	rs.CurrEnv = rs.CurrEnv.parent
+	return nil, nil
+}
+
+func (f LoxFunction) Arity() int {
+	return len(f.Params)
 }
 
 // Determines whether a value is truthy.
@@ -84,19 +113,21 @@ func (rs *RuntimeState) Run(source string) {
 
 	pStmts := root.(ProgramNode)
 	for _, stmt := range pStmts.Statements {
-		err := rs.Interpret(stmt)
+		_, err := rs.Interpret(stmt)
 		if err != nil {
 			fmt.Fprintln(rs.OutWriter, err.Error())
 		}
 	}
 }
 
-func (rs *RuntimeState) Interpret(stmt Stmt) error {
+// Interpret the stmt and apply the changes to the RuntimeState
+func (rs *RuntimeState) Interpret(stmt Stmt) (Value, error) {
+	var ret Value
 	switch stype := stmt.(type) {
 	case PrintStmt:
 		value, err := rs.Evaluate(stype.Expr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		fmt.Fprintln(rs.OutWriter, value)
@@ -104,7 +135,7 @@ func (rs *RuntimeState) Interpret(stmt Stmt) error {
 		// We don't actually do anything with an ExprStmt value
 		_, err := rs.Evaluate(stype.Expr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 	case DeclarationStmt:
@@ -112,52 +143,77 @@ func (rs *RuntimeState) Interpret(stmt Stmt) error {
 		if stype.Expr != nil {
 			v, err := rs.Evaluate(*stype.Expr)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			init = v
 		}
 
 		rs.CurrEnv.Declare(stype.Name, init)
+	case FunctionDeclarationStmt:
+		// Add the function to the current scope as a LoxCallable
+		f := LoxFunction{
+			Params: stype.Parameters,
+			Stmts:  stype.Body.Statements,
+		}
+		rs.CurrEnv.Declare(stype.Name, f)
+	case ReturnStmt:
+		value, err := rs.Evaluate(stype.Value)
+		if err != nil {
+			return nil, err
+		}
+		return value, nil
 	case BlockStmt:
 		// Create a new variable scope
 		rs.CurrEnv = NewScopeEnv(rs.CurrEnv)
 		for _, stmt := range stype.Statements {
-			rs.Interpret(stmt)
+			ret, err := rs.Interpret(stmt)
+			if err != nil {
+				return nil, err
+			}
+			if ret != nil {
+				return ret, nil
+			}
 		}
 		rs.CurrEnv = rs.CurrEnv.parent
 	case IfStmt:
 		cond, err := rs.Evaluate(stype.Condition)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if isTruthy(cond) {
-			err = rs.Interpret(stype.ThenBranch)
+			ret, err = rs.Interpret(stype.ThenBranch)
 		} else {
-			err = rs.Interpret(stype.ElseBranch)
+			ret, err = rs.Interpret(stype.ElseBranch)
 		}
 
 		if err != nil {
-			return err
+			return nil, err
+		}
+		if ret != nil {
+			return ret, nil
 		}
 	case WhileStmt:
 		for {
 			cond, err := rs.Evaluate(stype.Condition)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			if !isTruthy(cond) {
 				break
 			}
 
-			err = rs.Interpret(stype.Body)
+			ret, err = rs.Interpret(stype.Body)
 			if err != nil {
-				return err
+				return nil, err
+			}
+			if ret != nil {
+				return ret, nil
 			}
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (rs *RuntimeState) Evaluate(node Expr) (Value, error) {
@@ -284,20 +340,23 @@ func (rs *RuntimeState) Evaluate(node Expr) (Value, error) {
 		}
 
 		// Cast callee to function type
-		switch callable := callee.(type) {
-		case LoxCallable:
-			if len(argValues) != callable.Arity() {
-				err := RuntimeError{message: fmt.Sprintf("Function expects %d args but got %d", callable.Arity(), len(argValues))}
-				return nil, err
-			}
-			callable.Call(rs, argValues)
-		default:
+		callable, ok := callee.(LoxCallable)
+		if !ok {
 			err := RuntimeError{
 				message: fmt.Sprintf("Attempted to call non-callable object: %+v", node),
 			}
 			return nil, err
-
 		}
+
+		if len(argValues) != callable.Arity() {
+			err := RuntimeError{message: fmt.Sprintf("Function expects %d args but got %d", callable.Arity(), len(argValues))}
+			return nil, err
+		}
+		value, err := callable.Call(rs, argValues)
+		if err != nil {
+			return nil, err
+		}
+		return value, err
 
 	}
 

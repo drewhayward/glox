@@ -65,6 +65,26 @@ func TestOutut(t *testing.T) {
 		{"assignment as expression",
 			"var a; print a = 1;",
 			"1\n"},
+		{"function no args",
+			`fun f() { return 1 }
+            print f();`,
+			"1\n",
+		},
+		{"function",
+			`fun f(a) { return a + 1 }
+            print f(1);`,
+			"2\n",
+		},
+		{"function 2 args",
+			`fun f(a,b) { return a + b }
+            print f(1,1);`,
+			"2\n",
+		},
+		{"function: recursive",
+			`fun count(n) { if (n > 1) count(n - 1); print n; }
+            count(3);`,
+			"1\n2\n3\n",
+		},
 	}
 	is := is.New(t)
 

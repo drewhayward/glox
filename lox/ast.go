@@ -55,6 +55,22 @@ type DeclarationStmt struct {
 func (_ DeclarationStmt) isNode()   {}
 func (_ DeclarationStmt) stmtNode() {}
 
+type FunctionDeclarationStmt struct {
+	Name       string
+	Parameters []string
+	Body       BlockStmt
+}
+
+func (_ FunctionDeclarationStmt) isNode()   {}
+func (_ FunctionDeclarationStmt) stmtNode() {}
+
+type ReturnStmt struct {
+	Value Expr
+}
+
+func (_ ReturnStmt) isNode()   {}
+func (_ ReturnStmt) stmtNode() {}
+
 type IfStmt struct {
 	Condition  Expr
 	ThenBranch Stmt

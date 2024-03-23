@@ -132,6 +132,49 @@ func (ps *parserState) parseDeclaration() (Stmt, error) {
 		}
 
 		return d, nil
+	} else if ps.matchToken(FUN) {
+		err := ps.consumeToken(IDENTIFIER, "Expected function identifier")
+		if err != nil {
+			return nil, err
+		}
+		name := ps.previous().lexeme
+
+		err = ps.consumeToken(LEFT_PAREN, "Expected '('")
+		if err != nil {
+			return nil, err
+		}
+
+		params := make([]string, 0)
+		if !ps.matchToken(RIGHT_PAREN) {
+			for {
+				err := ps.consumeToken(IDENTIFIER, "Expected function identifier")
+				if err != nil {
+					return nil, err
+				}
+				param := ps.previous().lexeme
+
+				params = append(params, param)
+
+				if ps.matchToken(RIGHT_PAREN) {
+					break
+				}
+				err = ps.consumeToken(COMMA, "Expected comma to separate function parameters")
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+
+		body, err := ps.parseBlock()
+		if err != nil {
+			return nil, err
+		}
+
+		return FunctionDeclarationStmt{
+			Name:       name,
+			Parameters: params,
+			Body:       body.(BlockStmt),
+		}, nil
 	}
 
 	return ps.parseStmt()
@@ -143,6 +186,8 @@ func (ps *parserState) parseStmt() (Stmt, error) {
 		return ps.parsePrint()
 	case WHILE:
 		return ps.parseWhile()
+	case RETURN:
+		return ps.parseReturn()
 	case FOR:
 		return ps.parseFor()
 	case LEFT_BRACE:
@@ -235,6 +280,20 @@ func (ps *parserState) parseWhile() (Stmt, error) {
 		Condition: expr,
 		Body:      stmt,
 	}, nil
+}
+
+func (ps *parserState) parseReturn() (Stmt, error) {
+	err := ps.consumeToken(RETURN, "Expected 'return'")
+	if err != nil {
+		return nil, err
+	}
+
+	expr, err := ps.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+
+	return ReturnStmt{Value: expr}, nil
 }
 
 // Parse a for loop as a desugared while because we can
