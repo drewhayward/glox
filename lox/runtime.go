@@ -11,7 +11,8 @@ type Value interface{}
 type Null *struct{}
 
 type LoxCallable interface {
-	Call(runtimeState *RuntimeState, arguments []Value)
+	Call(runtimeState *RuntimeState, arguments []Value) any
+	Arity() int
 }
 
 // Determines whether a value is truthy.
@@ -49,13 +50,20 @@ func (e RuntimeError) Error() string {
 
 type RuntimeState struct {
 	// Points to the currently active scope for execution
+	GlobalEnv *ScopeEnv
 	CurrEnv   *ScopeEnv
 	OutWriter io.Writer
 }
 
 func NewRuntimeState() RuntimeState {
+	global_scope := NewScopeEnv(nil)
+
+	// Declare builtin functions
+	global_scope.Declare("clock", ClockFn{})
+
 	return RuntimeState{
-		CurrEnv:   NewScopeEnv(nil),
+		GlobalEnv: global_scope,
+		CurrEnv:   global_scope,
 		OutWriter: os.Stdout,
 	}
 }
@@ -278,6 +286,10 @@ func (rs *RuntimeState) Evaluate(node Expr) (Value, error) {
 		// Cast callee to function type
 		switch callable := callee.(type) {
 		case LoxCallable:
+			if len(argValues) != callable.Arity() {
+				err := RuntimeError{message: fmt.Sprintf("Function expects %d args but got %d", callable.Arity(), len(argValues))}
+				return nil, err
+			}
 			callable.Call(rs, argValues)
 		default:
 			err := RuntimeError{
