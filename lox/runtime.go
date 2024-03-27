@@ -45,6 +45,22 @@ func (f LoxFunction) Arity() int {
 	return len(f.Params)
 }
 
+type LoxClass struct {
+	Name      string
+	Functions []LoxFunction
+}
+
+type LoxInstance struct {
+	Class *LoxClass
+}
+
+func (c LoxClass) Call(runtimeState *RuntimeState, arguments []Value) (any, error) {
+	return LoxInstance{Class: &c}, nil
+}
+func (c LoxClass) Arity() int {
+	return 0
+}
+
 // Determines whether a value is truthy.
 // Lox implements Ruby's truthiness rules
 // lox-nil and false are falsey
@@ -157,6 +173,22 @@ func (rs *RuntimeState) Interpret(stmt Stmt) (Value, error) {
 			Stmts:  stype.Body.Statements,
 		}
 		rs.CurrEnv.Declare(stype.Name, f)
+	case ClassDeclarationStmt:
+		cls_funcs := make([]LoxFunction, 0)
+		for _, func_node := range stype.Functions {
+			f := LoxFunction{
+				Params: func_node.Parameters,
+				Stmts:  func_node.Body.Statements,
+			}
+			cls_funcs = append(cls_funcs, f)
+
+		}
+		cls := LoxClass{
+			Name:      stype.Name,
+			Functions: cls_funcs,
+		}
+		rs.CurrEnv.Declare(stype.Name, cls)
+		return nil, nil
 	case ReturnStmt:
 		value, err := rs.Evaluate(stype.Value)
 		if err != nil {

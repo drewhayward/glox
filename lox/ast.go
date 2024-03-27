@@ -61,6 +61,14 @@ type FunctionDeclarationStmt struct {
 func (_ FunctionDeclarationStmt) isNode()   {}
 func (_ FunctionDeclarationStmt) stmtNode() {}
 
+type ClassDeclarationStmt struct {
+	Name      string
+	Functions []FunctionDeclarationStmt
+}
+
+func (_ ClassDeclarationStmt) isNode()   {}
+func (_ ClassDeclarationStmt) stmtNode() {}
+
 type ReturnStmt struct {
 	Value Expr
 }

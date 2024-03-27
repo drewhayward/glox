@@ -37,6 +37,14 @@ print a;
 }
 print a;
         `},
+		{`
+class Foo {}
+        `},
+		{`
+class Foo {
+bar() {}
+}
+        `},
 	}
 
 	for _, tc := range testCases {
@@ -46,11 +54,13 @@ print a;
 			tokens, err := ScanTokens(tc.source)
 			if err != nil {
 				t.Fatalf(err.Error())
+				t.FailNow()
 			}
 
 			node, err := Parse(tokens)
 			if err != nil {
 				t.Fatalf(err.Error())
+				t.FailNow()
 			}
 
 			s.MatchSnapshot(t, node)

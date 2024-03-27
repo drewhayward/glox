@@ -133,51 +133,86 @@ func (ps *parserState) parseDeclaration() (Stmt, error) {
 
 		return d, nil
 	} else if ps.matchToken(FUN) {
-		err := ps.consumeToken(IDENTIFIER, "Expected function identifier")
+		return ps.parseFunctionDefinition()
+	} else if ps.matchToken(CLASS) {
+		err := ps.consumeToken(IDENTIFIER, "Expected class identifier")
 		if err != nil {
 			return nil, err
 		}
-		name := ps.previous().lexeme
+		identifier := ps.previous().lexeme
 
-		err = ps.consumeToken(LEFT_PAREN, "Expected '('")
+		err = ps.consumeToken(LEFT_BRACE, "Expected '{' to open class")
 		if err != nil {
 			return nil, err
 		}
 
-		params := make([]string, 0)
-		if !ps.matchToken(RIGHT_PAREN) {
-			for {
-				err := ps.consumeToken(IDENTIFIER, "Expected function identifier")
-				if err != nil {
-					return nil, err
-				}
-				param := ps.previous().lexeme
+		functions := make([]FunctionDeclarationStmt, 0)
+		for !ps.matchToken(RIGHT_BRACE) {
+			fun, err := ps.parseFunctionDefinition()
+			if err != nil {
+				return nil, err
+			}
 
-				params = append(params, param)
-
-				if ps.matchToken(RIGHT_PAREN) {
-					break
-				}
-				err = ps.consumeToken(COMMA, "Expected comma to separate function parameters")
-				if err != nil {
-					return nil, err
-				}
+			if fun_stmt, ok := fun.(FunctionDeclarationStmt); !ok {
+				panic("Bad juju")
+			} else {
+				functions = append(functions, fun_stmt)
 			}
 		}
 
-		body, err := ps.parseBlock()
-		if err != nil {
-			return nil, err
-		}
-
-		return FunctionDeclarationStmt{
-			Name:       name,
-			Parameters: params,
-			Body:       body.(BlockStmt),
+		return ClassDeclarationStmt{
+			Name:      identifier,
+			Functions: functions,
 		}, nil
+
 	}
 
 	return ps.parseStmt()
+}
+
+func (ps *parserState) parseFunctionDefinition() (Stmt, error) {
+	err := ps.consumeToken(IDENTIFIER, "Expected function identifier")
+	if err != nil {
+		return nil, err
+	}
+	name := ps.previous().lexeme
+
+	err = ps.consumeToken(LEFT_PAREN, "Expected '('")
+	if err != nil {
+		return nil, err
+	}
+
+	params := make([]string, 0)
+	if !ps.matchToken(RIGHT_PAREN) {
+		for {
+			err := ps.consumeToken(IDENTIFIER, "Expected function identifier")
+			if err != nil {
+				return nil, err
+			}
+			param := ps.previous().lexeme
+
+			params = append(params, param)
+
+			if ps.matchToken(RIGHT_PAREN) {
+				break
+			}
+			err = ps.consumeToken(COMMA, "Expected comma to separate function parameters")
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	body, err := ps.parseBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	return FunctionDeclarationStmt{
+		Name:       name,
+		Parameters: params,
+		Body:       body.(BlockStmt),
+	}, nil
 }
 
 func (ps *parserState) parseStmt() (Stmt, error) {

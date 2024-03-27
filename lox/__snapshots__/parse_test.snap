@@ -34,6 +34,31 @@ lox.ProgramNode{
 }
 ---
 
+[TestParseSnapshot/Parse("var_a_=_1;\n{\nvar_a_=_2;\nprint_a;\n}\nprint_a;") - 1]
+lox.ProgramNode{
+    Statements: {
+        lox.DeclarationStmt{
+            Name: "a",
+            Expr: &lox.LiteralExpr[float64]{value:1},
+        },
+        lox.BlockStmt{
+            Statements: {
+                lox.DeclarationStmt{
+                    Name: "a",
+                    Expr: &lox.LiteralExpr[float64]{value:2},
+                },
+                lox.PrintStmt{
+                    Expr: lox.VarExpr{Name:"a"},
+                },
+            },
+        },
+        lox.PrintStmt{
+            Expr: lox.VarExpr{Name:"a"},
+        },
+    },
+}
+---
+
 [TestParseSnapshot/Parse("fun_foo()_{}") - 1]
 lox.ProgramNode{
     Statements: {
@@ -67,26 +92,33 @@ lox.ProgramNode{
 }
 ---
 
-[TestParseSnapshot/Parse("var_a_=_1;\n{\nvar_a_=_2;\nprint_a;\n}\nprint_a;") - 1]
+[TestParseSnapshot/Parse("class_Foo_{}") - 1]
 lox.ProgramNode{
     Statements: {
-        lox.DeclarationStmt{
-            Name: "a",
-            Expr: &lox.LiteralExpr[float64]{value:1},
-        },
-        lox.BlockStmt{
-            Statements: {
-                lox.DeclarationStmt{
-                    Name: "a",
-                    Expr: &lox.LiteralExpr[float64]{value:2},
-                },
-                lox.PrintStmt{
-                    Expr: lox.VarExpr{Name:"a"},
-                },
+        lox.ClassDeclarationStmt{
+            Name:      "Foo",
+            Functions: {
             },
         },
-        lox.PrintStmt{
-            Expr: lox.VarExpr{Name:"a"},
+    },
+}
+---
+
+[TestParseSnapshot/Parse("class_Foo_{\nbar()_{}\n}") - 1]
+lox.ProgramNode{
+    Statements: {
+        lox.ClassDeclarationStmt{
+            Name:      "Foo",
+            Functions: {
+                {
+                    Name:       "bar",
+                    Parameters: {},
+                    Body:       lox.BlockStmt{
+                        Statements: {
+                        },
+                    },
+                },
+            },
         },
     },
 }
