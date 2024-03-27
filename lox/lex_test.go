@@ -50,14 +50,17 @@ func TestLexSnapshot(t *testing.T) {
 		{"true"},
 		{"var"},
 		{"while "},
-		{"var test = \"foobar\""},
+		{"var test = \"foobar\";"},
 		{"var\nvar"},
 		// Add more test cases as needed
 	}
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("ScanTokens(%q)", tc.source), func(t *testing.T) {
-			tokens, _ := ScanTokens(tc.source)
+			tokens, err := ScanTokens(tc.source)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 			snaps.MatchSnapshot(t, tokens)
 		})
 	}

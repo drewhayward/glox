@@ -236,21 +236,6 @@
 }
 ---
 
-[TestLexSnapshot/ScanTokens("while") - 1]
-[]lox.Token{
-    {type_:"WHILE", lexeme:"while", literal:"", line:1},
-}
----
-
-[TestLexSnapshot/ScanTokens("var_test_=_\"foobar\"") - 1]
-[]lox.Token{
-    {type_:"VAR", lexeme:"var", literal:"", line:1},
-    {type_:"IDENTIFIER", lexeme:"test", literal:"", line:1},
-    {type_:"EQUAL", lexeme:"=", literal:"", line:1},
-    {type_:"STRING", lexeme:"foobar", literal:"", line:1},
-}
----
-
 [TestLexSnapshot/ScanTokens("var\nvar") - 1]
 []lox.Token{
     {type_:"VAR", lexeme:"var", literal:"", line:1},
@@ -261,5 +246,15 @@
 [TestLexSnapshot/ScanTokens("while_") - 1]
 []lox.Token{
     {type_:"WHILE", lexeme:"while", literal:"", line:1},
+}
+---
+
+[TestLexSnapshot/ScanTokens("var_test_=_\"foobar\";") - 1]
+[]lox.Token{
+    {type_:"VAR", lexeme:"var", literal:"", line:1},
+    {type_:"IDENTIFIER", lexeme:"test", literal:"", line:1},
+    {type_:"EQUAL", lexeme:"=", literal:"", line:1},
+    {type_:"STRING", lexeme:"foobar", literal:"", line:1},
+    {type_:"SEMICOLON", lexeme:";", literal:"", line:1},
 }
 ---

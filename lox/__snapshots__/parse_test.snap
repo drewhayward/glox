@@ -1,11 +1,92 @@
 
-[TestParseSnapshot/Parse("\n____________var_a_=_1;\n________") - 1]
+[TestParseSnapshot/Parse("1;") - 1]
 lox.ProgramNode{
-    Node:       nil,
+    Statements: {
+        lox.ExprStmt{
+            Expr: lox.LiteralExpr[float64]{value:1},
+        },
+    },
+}
+---
+
+[TestParseSnapshot/Parse("1_+_1;") - 1]
+lox.ProgramNode{
+    Statements: {
+        lox.ExprStmt{
+            Expr: lox.BinaryExpr{
+                Operation: "PLUS",
+                Lhs:       lox.LiteralExpr[float64]{value:1},
+                Rhs:       lox.LiteralExpr[float64]{value:1},
+            },
+        },
+    },
+}
+---
+
+[TestParseSnapshot/Parse("var_a_=_1;") - 1]
+lox.ProgramNode{
     Statements: {
         lox.DeclarationStmt{
             Name: "a",
             Expr: &lox.LiteralExpr[float64]{value:1},
+        },
+    },
+}
+---
+
+[TestParseSnapshot/Parse("fun_foo()_{}") - 1]
+lox.ProgramNode{
+    Statements: {
+        lox.FunctionDeclarationStmt{
+            Name:       "foo",
+            Parameters: {},
+            Body:       lox.BlockStmt{
+                Statements: {
+                },
+            },
+        },
+    },
+}
+---
+
+[TestParseSnapshot/Parse("fun_foo()_{\nprint_\"hello\";\n}") - 1]
+lox.ProgramNode{
+    Statements: {
+        lox.FunctionDeclarationStmt{
+            Name:       "foo",
+            Parameters: {},
+            Body:       lox.BlockStmt{
+                Statements: {
+                    lox.PrintStmt{
+                        Expr: lox.LiteralExpr[string]{value:"hello"},
+                    },
+                },
+            },
+        },
+    },
+}
+---
+
+[TestParseSnapshot/Parse("var_a_=_1;\n{\nvar_a_=_2;\nprint_a;\n}\nprint_a;") - 1]
+lox.ProgramNode{
+    Statements: {
+        lox.DeclarationStmt{
+            Name: "a",
+            Expr: &lox.LiteralExpr[float64]{value:1},
+        },
+        lox.BlockStmt{
+            Statements: {
+                lox.DeclarationStmt{
+                    Name: "a",
+                    Expr: &lox.LiteralExpr[float64]{value:2},
+                },
+                lox.PrintStmt{
+                    Expr: lox.VarExpr{Name:"a"},
+                },
+            },
+        },
+        lox.PrintStmt{
+            Expr: lox.VarExpr{Name:"a"},
         },
     },
 }

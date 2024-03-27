@@ -10,17 +10,14 @@ type Node interface {
 }
 
 type Expr interface {
-	Node
 	exprNode()
 }
 
 type Stmt interface {
-	Node
 	stmtNode()
 }
 
 type ProgramNode struct {
-	Node
 	Statements []Stmt
 }
 

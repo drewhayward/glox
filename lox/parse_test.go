@@ -2,8 +2,10 @@ package lox
 
 import (
 	"fmt"
-	"github.com/gkampitakis/go-snaps/snaps"
+	"strings"
 	"testing"
+
+	"github.com/gkampitakis/go-snaps/snaps"
 )
 
 func TestParseSnapshot(t *testing.T) {
@@ -11,14 +13,41 @@ func TestParseSnapshot(t *testing.T) {
 		source string
 	}{
 		{`
-            var a = 1;
+1;
+        `},
+		{`
+1 + 1;
+        `},
+		{`
+var a = 1;
+        `},
+		{`
+fun foo() {}
+        `},
+		{`
+fun foo() {
+print "hello";
+}
+        `},
+		{`
+var a = 1;
+{
+var a = 2;
+print a;
+}
+print a;
         `},
 	}
 
 	for _, tc := range testCases {
 		s := snaps.WithConfig()
-		t.Run(fmt.Sprintf("Parse(%q)", tc.source), func(t *testing.T) {
-			tokens, _ := ScanTokens(tc.source)
+
+		t.Run(fmt.Sprintf("Parse(%q)", strings.Trim(tc.source, " \n")), func(t *testing.T) {
+			tokens, err := ScanTokens(tc.source)
+			if err != nil {
+				t.Fatalf(err.Error())
+			}
+
 			node, err := Parse(tokens)
 			if err != nil {
 				t.Fatalf(err.Error())
