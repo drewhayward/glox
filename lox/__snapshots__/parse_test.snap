@@ -1,0 +1,12 @@
+
+[TestParseSnapshot/Parse("\n____________var_a_=_1;\n________") - 1]
+lox.ProgramNode{
+    Node:       nil,
+    Statements: {
+        lox.DeclarationStmt{
+            Name: "a",
+            Expr: &lox.LiteralExpr[float64]{value:1},
+        },
+    },
+}
+---
